@@ -31,16 +31,21 @@ jvm.MultiMap = function(params) {
   this.history = [ this.addMap(this.params.main.map, this.params.main) ];
   this.defaultProjection = this.history[0].mapData.projection.type;
   this.mapsLoaded = {};
-
   this.params.container.css({position: 'relative'});
-  this.backButton = jvm.$('<div/>').addClass('jvectormap-goback').text('Back').appendTo(this.params.container);
-  this.backButton.hide();
-  this.backButton.click(function(){
-    that.goBack();
-  });
+  this.showBackButton = this.params.showBackButton === true;
+  if (this.showBackButton) {
+    this.backButton = jvm.$('<div/>').addClass('jvectormap-goback').text('Back').appendTo(this.params.container);
+    this.backButton.hide();
+    this.backButton.click(function(){
+      that.goBack();
+    });
+  }
 
+  this.params.zoomToRegionOnClick = this.params.zoomToRegionOnClick === true;
   this.spinner = jvm.$('<div/>').addClass('jvectormap-spinner').appendTo(this.params.container);
   this.spinner.hide();
+
+  this.currentMap = this.params.main.map;
 };
 
 jvm.MultiMap.prototype = {
@@ -53,14 +58,9 @@ jvm.MultiMap.prototype = {
     this.params.container.append(cnt);
 
     this.maps[name] = new jvm.Map(jvm.$.extend(config, {container: cnt}));
-    if (this.params.maxLevel > config.multiMapLevel) {
+    if (this.params.zoomToRegionOnClick && this.params.maxLevel > config.multiMapLevel) {
       this.maps[name].container.on('regionClick.jvectormap', {scope: this}, function(e, code){
-        var multimap = e.data.scope,
-            mapName = multimap.params.mapNameByCode(code, multimap);
-
-        if (!multimap.drillDownPromise || multimap.drillDownPromise.state() !== 'pending') {
-          multimap.drillDown(mapName, code);
-        }
+        e.data.scope.openRegion(code);
       });
     }
 
@@ -86,9 +86,14 @@ jvm.MultiMap.prototype = {
   },
 
   drillDown: function(name, code){
-    var currentMap = this.history[this.history.length - 1],
-        that = this,
-        focusPromise = currentMap.setFocus({region: code, animate: true}),
+    var that = this,
+      deferred = jvm.$.Deferred(),
+      currentMap = this.history[this.history.length - 1];
+    if (that.params.maxLevel <= currentMap.params.multiMapLevel) {
+      deferred.reject('Already at max level '+that.params.maxLevel);
+      return deferred;
+    }
+    var focusPromise = currentMap.setFocus({region: code, animate: that.params.animateDrilldown}),
         downloadPromise = this.downloadMap(code);
 
     focusPromise.then(function(){
@@ -99,33 +104,66 @@ jvm.MultiMap.prototype = {
     downloadPromise.always(function(){
       that.spinner.hide();
     });
-    this.drillDownPromise = jvm.$.when(downloadPromise, focusPromise);
-    this.drillDownPromise.then(function(){
+    that.drillDownPromise = jvm.$.when(downloadPromise, focusPromise);
+    that.drillDownPromise.then(function(){
+      var newMapOptions = {};
       currentMap.params.container.hide();
-      if (!that.maps[name]) {
-        that.addMap(name, {map: name, multiMapLevel: currentMap.params.multiMapLevel + 1});
-      } else {
-        that.maps[name].params.container.show();
-      }
-      that.history.push( that.maps[name] );
-      that.backButton.show();
+        if (!that.maps[name]) {
+          jvm.$.extend(newMapOptions, that.params);
+          newMapOptions.map = name;
+          newMapOptions.multiMapLevel = currentMap.params.multiMapLevel + 1;
+          that.addMap(name, newMapOptions); //throws exception if map not available
+          that.currentMap = name;
+        } else {
+          that.maps[name].params.container.show();
+        }
+        that.history.push( that.maps[name] );
+        if (that.params.showBackButton) {
+          that.backButton.show();
+        }
+        deferred.resolve();
+    }, function(cause){
+      deferred.reject(cause);
     });
+    return deferred;
+  },
+
+  openRegion: function(code) {
+    var that = this,
+      deferred = jvm.$.Deferred(),
+      mapName = that.params.mapNameByCode(code, that);
+    if (!that.drillDownPromise || that.drillDownPromise.state() !== 'pending') {
+      that.drillDown(mapName, code).then(function(){
+        deferred.resolve();
+      }, function(cause){
+        deferred.reject(cause);
+      });
+    } else {
+      deferred.reject('open already in progress');
+    }
+    return deferred;
   },
 
   goBack: function(){
     var currentMap = this.history.pop(),
         prevMap = this.history[this.history.length - 1],
-        that = this;
+        that = this,
+        deferred = jvm.$.Deferred();
 
-    currentMap.setFocus({scale: 1, x: 0.5, y: 0.5, animate: true}).then(function(){
+    currentMap.setFocus({scale: 1, x: 0.5, y: 0.5, animate: that.params.animateDrilldown}).then(function(){
       currentMap.params.container.hide();
       prevMap.params.container.show();
       prevMap.updateSize();
-      if (that.history.length === 1) {
+      if (that.history.length === 1 && that.params.showBackButton) {
         that.backButton.hide();
       }
-      prevMap.setFocus({scale: 1, x: 0.5, y: 0.5, animate: true});
+      prevMap.setFocus({scale: 1, x: 0.5, y: 0.5, animate: that.params.animateDrilldown}).then(function(){
+        deferred.resolve();
+      }, function(){
+        deferred.reject();
+      });
     });
+    return deferred;
   }
 };
 
@@ -135,5 +173,8 @@ jvm.MultiMap.defaultParams = {
   },
   mapUrlByCode: function(code, multiMap){
     return 'jquery-jvectormap-data-'+code.toLowerCase()+'-'+multiMap.defaultProjection+'-en.js';
-  }
+  },
+  animateDrilldown: true,
+  zoomToRegionOnClick: true,
+  showBackButton: true
 }
