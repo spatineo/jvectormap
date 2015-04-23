@@ -113,10 +113,10 @@ jvm.MultiMap.prototype = {
           newMapOptions.map = name;
           newMapOptions.multiMapLevel = currentMap.params.multiMapLevel + 1;
           that.addMap(name, newMapOptions); //throws exception if map not available
-          that.currentMap = name;
         } else {
           that.maps[name].params.container.show();
         }
+        that.currentMap = name;
         that.history.push( that.maps[name] );
         if (that.params.showBackButton) {
           that.backButton.show();
@@ -158,6 +158,7 @@ jvm.MultiMap.prototype = {
         that.backButton.hide();
       }
       prevMap.setFocus({scale: 1, x: 0.5, y: 0.5, animate: that.params.animateDrilldown}).then(function(){
+        that.currentMap = prevMap.params.map;
         deferred.resolve();
       }, function(){
         deferred.reject();
