@@ -85,14 +85,12 @@ jvm.DataSeries.prototype = {
 
       if (typeof this.params.min === 'undefined') {
         this.scale.setMin(min);
-        this.params.min = min;
       } else {
         this.scale.setMin(this.params.min);
       }
 
       if (typeof this.params.max === 'undefined') {
         this.scale.setMax(max);
-        this.params.max = max;
       } else {
         this.scale.setMax(this.params.max);
       }
