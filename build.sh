@@ -26,6 +26,7 @@ files=( \
   src/ordinal-scale.js \
   src/numeric-scale.js \
   src/color-scale.js \
+  src/interval-scale.js \
   src/legend.js \
   src/data-series.js \
   src/proj.js \

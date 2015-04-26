@@ -23,14 +23,32 @@ jvm.DataSeries = function(params, elements, map) {
     this.setAttributes(params.attributes);
   }
 
+  this.initScale = function(scale) {
+    if (jvm.$.isArray(scale)) {
+      scaleConstructor = (params.attribute === 'fill' || params.attribute === 'stroke') ? jvm.ColorScale : jvm.NumericScale;
+      this.scale = new scaleConstructor(scale, params.normalizeFunction, params.min, params.max);
+    } else if (scale && scale.intervals) {
+      this.scale = new jvm.IntervalScale(scale);
+    } else if (params.scale) {
+      this.scale = new jvm.OrdinalScale(scale);
+    } else {
+      this.scale = new jvm.SimpleScale(scale);
+    }
+  };
+
+  this.initScale(params.scale);
+  /*
   if (jvm.$.isArray(params.scale)) {
     scaleConstructor = (params.attribute === 'fill' || params.attribute === 'stroke') ? jvm.ColorScale : jvm.NumericScale;
     this.scale = new scaleConstructor(params.scale, params.normalizeFunction, params.min, params.max);
+  } else if (params.scale && params.scale.intervals) {
+    this.scale = new jvm.IntervalScale(params.scale);
   } else if (params.scale) {
     this.scale = new jvm.OrdinalScale(params.scale);
   } else {
     this.scale = new jvm.SimpleScale(params.scale);
   }
+  */
 
   this.values = params.values || {};
   this.setValues(this.values);
@@ -72,7 +90,7 @@ jvm.DataSeries.prototype = {
         cc,
         attrs = {};
 
-    if (!(this.scale instanceof jvm.OrdinalScale) && !(this.scale instanceof jvm.SimpleScale)) {
+    if (this.scale instanceof jvm.ColorScale) {
       // we have a color scale as an array
       if (typeof this.params.min === 'undefined' || typeof this.params.max === 'undefined') {
         // min and/or max are not defined, so calculate them
@@ -101,16 +119,20 @@ jvm.DataSeries.prototype = {
           if (!isNaN(val)) {
             attrs[cc] = this.scale.getValue(val);
           } else {
-            attrs[cc] = this.elements[cc].element.style.initial[this.params.attribute];
+            attrs[cc] = this.elements[cc].element.shape.style.initial[this.params.attribute];
           }
         }
       }
-    } else {
+    } else if (this.scale instanceof jvm.IntervalScale) {
+      for (cc in values) {
+          attrs[cc] = this.scale.getValue(values[cc]);
+      }
+    } else if ((this.scale instanceof jvm.SimpleScale) || (this.scale instanceof jvm.NumericScale)) {
       for (cc in values) {
         if (values[cc]) {
           attrs[cc] = this.scale.getValue(values[cc]);
         } else {
-          attrs[cc] = this.elements[cc].element.style.initial[this.params.attribute];
+          attrs[cc] = this.elements[cc].element.shape.style.initial[this.params.attribute];
         }
       }
     }
@@ -137,9 +159,18 @@ jvm.DataSeries.prototype = {
    * @param {Array} scale Values representing scale.
    */
   setScale: function(scale) {
-    this.scale.setScale(scale);
+      //Legacy support: with an Array asssume we're updating the existing ColorScale
+    if (this.scale instanceof jvm.ColorScale && jvm.$.isArray(scale) ) {
+      this.scale.setScale(scale);
+    } else {
+      this.initScale(scale);
+    }
+
     if (this.values) {
       this.setValues(this.values);
+    }
+    if (this.legend) {
+      this.legend.render();
     }
   },
 
