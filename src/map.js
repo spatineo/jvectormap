@@ -151,7 +151,11 @@ jvm.Map = function(params) {
   }
   this.bindContainerEvents();
   this.bindElementEvents();
-  this.createTip();
+  if (jvm.$('#jvectormap-tip-shared').length === 0){
+    this.createTip();
+  } else {
+    this.tip = jvm.$('#jvectormap-tip-shared').first();
+  }
   if (this.params.zoomButtons) {
     this.bindZoomButtons();
   }
@@ -499,8 +503,7 @@ jvm.Map.prototype = {
 
   createTip: function(){
     var map = this;
-
-    this.tip = jvm.$('<div/>').addClass('jvectormap-tip').appendTo(jvm.$('body'));
+    this.tip = jvm.$('<div id="jvectormap-tip-shared"/>').addClass('jvectormap-tip').appendTo(jvm.$('body'));
 
     this.container.mousemove(function(e){
       var left = e.pageX-15-map.tipWidth,
