@@ -156,6 +156,7 @@ jvm.Map = function(params) {
   } else {
     this.tip = jvm.$('#jvectormap-tip-shared').first();
   }
+  this.bindTip(this.tip);
   if (this.params.zoomButtons) {
     this.bindZoomButtons();
   }
@@ -503,8 +504,11 @@ jvm.Map.prototype = {
 
   createTip: function(){
     var map = this;
-    this.tip = jvm.$('<div id="jvectormap-tip-shared"/>').addClass('jvectormap-tip').appendTo(jvm.$('body'));
+    map.tip = jvm.$('<div id="jvectormap-tip-shared"/>').addClass('jvectormap-tip').appendTo(jvm.$('body'));
+  },
 
+  bindTip: function(tip){
+    var map = this;
     this.container.mousemove(function(e){
       var left = e.pageX-15-map.tipWidth,
           top = e.pageY-15-map.tipHeight;
@@ -516,7 +520,7 @@ jvm.Map.prototype = {
         top = e.pageY + 15;
       }
 
-      map.tip.css({
+      tip.css({
         left: left,
         top: top
       });
