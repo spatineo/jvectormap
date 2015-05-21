@@ -134,7 +134,9 @@ jvm.Map = function(params) {
   this.onResize = function(){
     map.updateSize();
   }
-  jvm.$(window).resize(this.onResize);
+  if (this.params.enableAutoResize){
+    jvm.$(window).resize(this.onResize);
+  }
 
   for (e in jvm.Map.apiEvents) {
     if (this.params[e]) {
@@ -1047,7 +1049,9 @@ jvm.Map.prototype = {
   remove: function(){
     this.tip.remove();
     this.container.remove();
-    jvm.$(window).unbind('resize', this.onResize);
+    if (this.params.enableAutoResize) {
+      jvm.$(window).unbind('resize', this.onResize);
+    }
     jvm.$('body').unbind('mouseup', this.onContainerMouseUp);
   }
 };
@@ -1067,6 +1071,7 @@ jvm.Map.defaultParams = {
   regionsSelectable: false,
   markersSelectable: false,
   bindTouchEvents: true,
+  enableAutoResize: true,
   regionStyle: {
     initial: {
       fill: 'white',
