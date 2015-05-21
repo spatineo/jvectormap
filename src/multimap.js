@@ -45,7 +45,7 @@ jvm.MultiMap = function(params) {
   this.spinner = jvm.$('<div/>').addClass('jvectormap-spinner').appendTo(this.params.container);
   this.spinner.hide();
 
-  this.currentMap = this.params.main.map;
+  this.currentMapName = this.params.main.map;
 };
 
 jvm.MultiMap.prototype = {
@@ -116,7 +116,7 @@ jvm.MultiMap.prototype = {
         } else {
           that.maps[name].params.container.show();
         }
-        that.currentMap = name;
+        that.currentMapName = name;
         that.history.push( that.maps[name] );
         if (that.params.showBackButton) {
           that.backButton.show();
@@ -158,7 +158,7 @@ jvm.MultiMap.prototype = {
         that.backButton.hide();
       }
       prevMap.setFocus({scale: 1, x: 0.5, y: 0.5, animate: that.params.animateDrilldown}).then(function(){
-        that.currentMap = prevMap.params.map;
+        that.currentMapName = prevMap.params.map;
         deferred.resolve();
       }, function(){
         deferred.reject();
