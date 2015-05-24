@@ -173,25 +173,35 @@ class Converter:
     main_codes = copy.copy(codes)
     self.map.insets = []
     envelope = []
+
+    minLeft = 0
+
     for inset in self.insets:
-      insetBbox = self.renderMapInset(inset['codes'], inset['left'], inset['top'], inset['width'])
+      if inset['left'] < minLeft:
+        minLeft = inset['left']
+
+    self.width += -minLeft
+
+    for inset in self.insets:
+      insetLeft = inset['left'] - minLeft
+      insetBbox = self.renderMapInset(inset['codes'], insetLeft, inset['top'], inset['width'])
       insetHeight = (insetBbox[3] - insetBbox[1]) * (inset['width'] / (insetBbox[2] - insetBbox[0]))
       self.map.insets.append({
         "bbox": [{"x": insetBbox[0], "y": -insetBbox[3]}, {"x": insetBbox[2], "y": -insetBbox[1]}],
-        "left": inset['left'],
+        "left": insetLeft,
         "top": inset['top'],
         "width": inset['width'],
         "height": insetHeight
       })
       envelope.append(
         shapely.geometry.box(
-          inset['left'], inset['top'], inset['left'] + inset['width'], inset['top'] + insetHeight
+          insetLeft, inset['top'], insetLeft + inset['width'], inset['top'] + insetHeight
         )
       )
       for code in inset['codes']:
         main_codes.remove(code)
 
-    insetBbox = self.renderMapInset(main_codes, 0, 0, self.width)
+    insetBbox = self.renderMapInset(main_codes, -minLeft, 0, self.width)
     insetHeight = (insetBbox[3] - insetBbox[1]) * (self.width / (insetBbox[2] - insetBbox[0]))
 
     envelope.append( shapely.geometry.box( 0, 0, self.width, insetHeight ) )
@@ -201,7 +211,7 @@ class Converter:
     self.map.height = mapBbox[3] - mapBbox[1]
     self.map.insets.append({
       "bbox": [{"x": insetBbox[0], "y": -insetBbox[3]}, {"x": insetBbox[2], "y": -insetBbox[1]}],
-      "left": 0,
+      "left": -minLeft,
       "top": 0,
       "width": self.width,
       "height": insetHeight
