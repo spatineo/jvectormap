@@ -127,7 +127,7 @@ jvm.DataSeries.prototype = {
       for (cc in values) {
           attrs[cc] = this.scale.getValue(values[cc]);
       }
-    } else if ((this.scale instanceof jvm.SimpleScale) || (this.scale instanceof jvm.NumericScale)) {
+    } else if ((this.scale instanceof jvm.SimpleScale) || (this.scale instanceof jvm.NumericScale) || (this.scale instanceof jvm.OrdinalScale)) {
       for (cc in values) {
         if (values[cc]) {
           attrs[cc] = this.scale.getValue(values[cc]);
