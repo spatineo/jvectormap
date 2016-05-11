@@ -134,7 +134,9 @@ jvm.Map = function(params) {
   this.onResize = function(){
     map.updateSize();
   }
-  jvm.$(window).resize(this.onResize);
+  if (this.params.enableAutoResize){
+    jvm.$(window).resize(this.onResize);
+  }
 
   for (e in jvm.Map.apiEvents) {
     if (this.params[e]) {
@@ -153,7 +155,12 @@ jvm.Map = function(params) {
   }
   this.bindContainerEvents();
   this.bindElementEvents();
-  this.createTip();
+  if (jvm.$('#jvectormap-tip-shared').length === 0){
+    this.createTip();
+  } else {
+    this.tip = jvm.$('#jvectormap-tip-shared').first();
+  }
+  this.bindTip(this.tip);
   if (this.params.zoomButtons) {
     this.bindZoomButtons();
   }
@@ -547,9 +554,11 @@ jvm.Map.prototype = {
 
   createTip: function(){
     var map = this;
+    map.tip = jvm.$('<div id="jvectormap-tip-shared"/>').addClass('jvectormap-tip').appendTo(jvm.$('body'));
+  },
 
-    this.tip = jvm.$('<div/>').addClass('jvectormap-tip').appendTo(jvm.$('body'));
-
+  bindTip: function(tip){
+    var map = this;
     this.container.mousemove(function(e){
       var left = e.pageX-15-map.tipWidth,
           top = e.pageY-15-map.tipHeight;
@@ -561,7 +570,7 @@ jvm.Map.prototype = {
         top = e.pageY + 15;
       }
 
-      map.tip.css({
+      tip.css({
         left: left,
         top: top
       });
@@ -1088,7 +1097,9 @@ jvm.Map.prototype = {
   remove: function(){
     this.tip.remove();
     this.container.remove();
-    jvm.$(window).unbind('resize', this.onResize);
+    if (this.params.enableAutoResize) {
+      jvm.$(window).unbind('resize', this.onResize);
+    }
     jvm.$('body').unbind('mouseup', this.onContainerMouseUp);
   }
 };
@@ -1108,6 +1119,7 @@ jvm.Map.defaultParams = {
   regionsSelectable: false,
   markersSelectable: false,
   bindTouchEvents: true,
+  enableAutoResize: true,
   regionStyle: {
     initial: {
       fill: 'white',
